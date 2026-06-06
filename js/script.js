@@ -564,7 +564,6 @@
 
     function startFromIdle() {
         stopLoop();
-        saveBest();
         init();
         setGameState('playing');
         startLoop();
@@ -572,7 +571,6 @@
 
     function resetToIdle() {
         stopLoop();
-        saveBest();
         snake = [];
         food = null;
         score = 0;
