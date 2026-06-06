@@ -5,7 +5,6 @@
     const bestScoreSpan = document.getElementById('bestScore');
     const modeButtons = document.querySelectorAll('.mode-btn');
     const colorSwatches = document.querySelectorAll('.swatch');
-    const customColorInput = document.getElementById('customColor');
     const restartBtn = document.getElementById('restartBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const canvasWrapper = document.getElementById('canvasWrapper');
@@ -291,8 +290,7 @@
 
         if (gameState === 'playing' || gameState === 'paused' || gameState === 'gameover') {
             if (food) {
-                const fx = food.x * GRID,
-                    fy = food.y * GRID;
+                const fx = food.x * GRID, fy = food.y * GRID;
                 ctx.fillStyle = '#ff4d4d';
                 ctx.shadowColor = '#ff4d4d';
                 ctx.shadowBlur = 12;
@@ -304,8 +302,7 @@
             }
 
             snake.forEach((seg, idx) => {
-                const sx = seg.x * GRID,
-                    sy = seg.y * GRID;
+                const sx = seg.x * GRID, sy = seg.y * GRID;
                 const isHead = idx === 0;
                 ctx.fillStyle = isHead ? '#4caf50' : '#2e7d32';
                 if (isHead) {
@@ -411,7 +408,7 @@
             ctx.font = 'bold 20px "PingFang SC","Microsoft YaHei",sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('切换速度？', SIZE / 2, confirmDialogY + confirmDialogH * 0.28);
+            ctx.fillText('请确任切换速度', SIZE / 2, confirmDialogY + confirmDialogH * 0.28);
 
             const speedNames = { 180: '慢速', 130: '正常', 90: '快速', 60: '极速' };
             const speedName = speedNames[pendingSpeed] || '正常';
@@ -649,20 +646,13 @@
             sw.classList.remove('active');
             if (sw.dataset.color === color) sw.classList.add('active');
         });
-        customColorInput.value = color;
     }
 
     colorSwatches.forEach(sw => {
-        sw.addEventListener('click', (e) => {
-            if (sw.classList.contains('swatch-custom')) return;
+        sw.addEventListener('click', () => {
             const color = sw.dataset.color;
             if (color) setBgColor(color);
         });
-    });
-
-    customColorInput.addEventListener('input', () => {
-        setBgColor(customColorInput.value);
-        colorSwatches.forEach(s => s.classList.remove('active'));
     });
 
     function getCanvasCoords(clientX, clientY) {
@@ -775,10 +765,10 @@
     toggleDpadBtn.addEventListener('click', () => {
         if (dpad.style.display === 'none') {
             dpad.style.display = 'grid';
-            toggleDpadBtn.textContent = '⌨️ 隐藏方向键';
+            toggleDpadBtn.textContent = '隐藏方向键';
         } else {
             dpad.style.display = 'none';
-            toggleDpadBtn.textContent = '⌨️ 显示方向键';
+            toggleDpadBtn.textContent = '显示方向键';
         }
     });
 
