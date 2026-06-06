@@ -11,6 +11,12 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: auto;
 }
 
 body {
@@ -19,9 +25,13 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     padding: 10px;
-    touch-action: pan-x pan-y pinch-zoom;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .game-container {
@@ -89,12 +99,16 @@ h1 {
     background: #000;
     max-width: 100%;
     cursor: pointer;
+    touch-action: none;
 }
 
 canvas {
     display: block;
     max-width: 100%;
     height: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .mode-selector {
@@ -277,6 +291,7 @@ canvas {
     justify-content: center;
     user-select: none;
     touch-action: manipulation;
+    -webkit-user-select: none;
     transition: 0.1s;
     font-family: inherit;
 }
@@ -381,10 +396,13 @@ canvas {
 
 @media (max-width: 480px) {
     .game-container {
-        padding: 14px 10px;
+        padding: 10px 8px;
+        gap: 10px;
+        border-radius: 14px;
     }
     h1 {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
+        letter-spacing: 2px;
     }
     .mode-btn {
         padding: 6px 12px;
@@ -403,5 +421,174 @@ canvas {
     .dpad {
         grid-template-columns: 44px 44px 44px;
         grid-template-rows: 44px 44px 44px;
+        gap: 4px;
     }
+    .score-box {
+        padding: 4px 10px;
+        min-width: 60px;
+    }
+    .hint {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+    body {
+        padding: 3px;
+        align-items: flex-start;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .game-container {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto auto auto auto auto auto;
+        gap: 3px 10px;
+        max-width: 100%;
+        padding: 6px 10px;
+        border-radius: 12px;
+    }
+
+    h1 {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        font-size: 1rem;
+        letter-spacing: 2px;
+        margin: 0;
+    }
+
+    .canvas-wrapper {
+        grid-column: 1;
+        grid-row: 2 / 8;
+        align-self: start;
+        box-shadow: 0 0 0 2px var(--border);
+        border-radius: 6px;
+    }
+
+    .score-row {
+        grid-column: 2;
+        grid-row: 2;
+        gap: 5px;
+    }
+
+    .score-box {
+        padding: 2px 7px;
+        min-width: 46px;
+        border-radius: 7px;
+    }
+
+    .score-label {
+        font-size: 0.55rem;
+    }
+
+    .score-value {
+        font-size: 0.95rem;
+    }
+
+    .mode-selector {
+        grid-column: 2;
+        grid-row: 3;
+        gap: 4px;
+    }
+
+    .mode-btn {
+        padding: 3px 9px;
+        font-size: 0.68rem;
+        border-radius: 14px;
+        letter-spacing: 0;
+    }
+
+    .color-section {
+        grid-column: 2;
+        grid-row: 4;
+        gap: 5px;
+    }
+
+    .color-label {
+        font-size: 0.6rem;
+    }
+
+    .swatch {
+        width: 20px;
+        height: 20px;
+    }
+
+    .color-swatches {
+        gap: 5px;
+    }
+
+    .btn-row {
+        grid-column: 2;
+        grid-row: 5;
+        gap: 5px;
+    }
+
+    .restart-btn,
+    .pause-btn {
+        padding: 5px 12px;
+        font-size: 0.75rem;
+        border-radius: 18px;
+        letter-spacing: 1px;
+    }
+
+    .dpad {
+        grid-column: 2;
+        grid-row: 6;
+        grid-template-columns: 34px 34px 34px;
+        grid-template-rows: 34px 34px 34px;
+        gap: 2px;
+        justify-self: start;
+    }
+
+    .dpad-btn {
+        font-size: 0.9rem;
+        border-radius: 7px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .hint {
+        grid-column: 1 / -1;
+        grid-row: 7;
+        font-size: 0.55rem;
+        margin-top: 1px;
+    }
+}
+
+@media (min-height: 521px) and (max-height: 700px) and (orientation: landscape) and (pointer: coarse) {
+    .game-container {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto auto auto auto auto;
+        gap: 5px 16px;
+        max-width: 100%;
+        padding: 8px 14px;
+    }
+
+    h1 {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        font-size: 1.2rem;
+    }
+
+    .canvas-wrapper {
+        grid-column: 1;
+        grid-row: 2 / 7;
+        align-self: start;
+    }
+
+    .score-row { grid-column: 2; grid-row: 2; gap: 8px; }
+    .mode-selector { grid-column: 2; grid-row: 3; }
+    .color-section { grid-column: 2; grid-row: 4; }
+    .btn-row { grid-column: 2; grid-row: 5; }
+    .dpad {
+        grid-column: 2;
+        grid-row: 6;
+        grid-template-columns: 40px 40px 40px;
+        grid-template-rows: 40px 40px 40px;
+        gap: 3px;
+    }
+    .dpad-btn { font-size: 1.1rem; border-radius: 9px; }
+    .hint { grid-column: 1 / -1; grid-row: 7; }
 }

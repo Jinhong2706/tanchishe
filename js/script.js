@@ -55,6 +55,36 @@
     let lastMoveTime = 0;
     let animationId = null;
     let particles = [];
+    let pendingSpeed = null;
+    let prevStateBeforeConfirm = 'idle';
+    let notifyDialogW, notifyDialogH, notifyDialogX, notifyDialogY, notifyDialogR;
+    let notifyBtnW, notifyBtnH, notifyBtnX, notifyBtnY, notifyBtnR;
+
+    function initNotifyDims() {
+        notifyDialogW = Math.round(SIZE * 0.68);
+        notifyDialogH = Math.round(SIZE * 0.35);
+        notifyDialogX = Math.round((SIZE - notifyDialogW) / 2);
+        notifyDialogY = Math.round((SIZE - notifyDialogH) / 2);
+        notifyDialogR = Math.round(SIZE * 0.03);
+        notifyBtnW = Math.round(notifyDialogW * 0.4);
+        notifyBtnH = Math.round(SIZE * 0.09);
+        notifyBtnR = Math.round(SIZE * 0.02);
+        notifyBtnX = notifyDialogX + Math.round((notifyDialogW - notifyBtnW) / 2);
+        notifyBtnY = notifyDialogY + notifyDialogH - notifyBtnH - Math.round(SIZE * 0.04);
+    }
+    initNotifyDims();
+
+    let confirmDialogW = Math.round(SIZE * 0.72);
+    let confirmDialogH = Math.round(SIZE * 0.4);
+    let confirmDialogX = Math.round((SIZE - confirmDialogW) / 2);
+    let confirmDialogY = Math.round((SIZE - confirmDialogH) / 2);
+    let confirmDialogR = Math.round(SIZE * 0.03);
+    let confirmBtnW = Math.round(confirmDialogW * 0.35);
+    let confirmBtnH = Math.round(SIZE * 0.1);
+    let confirmBtnR = Math.round(SIZE * 0.02);
+    let confirmBtnY = confirmDialogY + confirmDialogH - confirmBtnH - Math.round(SIZE * 0.04);
+    let confirmBtnX = confirmDialogX + confirmDialogW / 2 - confirmBtnW - Math.round(SIZE * 0.03);
+    let cancelBtnX = confirmDialogX + confirmDialogW / 2 + Math.round(SIZE * 0.03);
 
     if (!isTouchDevice) {
         dpad.style.display = 'none';
@@ -62,18 +92,19 @@
     }
 
     function loadBest() {
+        bestScore = 0;
         try {
-            const v = localStorage.getItem('snake_best_v2');
+            const v = localStorage.getItem('snake_best_' + moveInterval);
             if (v && !isNaN(parseInt(v, 10))) bestScore = parseInt(v, 10);
         } catch (e) {}
         bestScoreSpan.textContent = bestScore;
     }
 
     function saveBest() {
-        if (score > bestScore) {
+        if (score > 0 && score > bestScore) {
             bestScore = score;
             bestScoreSpan.textContent = bestScore;
-            try { localStorage.setItem('snake_best_v2', bestScore); } catch (e) {}
+            try { localStorage.setItem('snake_best_' + moveInterval, bestScore); } catch (e) {}
         }
     }
 
@@ -205,6 +236,16 @@
                 pauseBtn.style.display = 'inline-block';
                 pauseBtn.textContent = '▶ 继续';
                 pauseBtn.classList.add('resume');
+                break;
+            case 'confirming':
+                restartBtn.textContent = '重新开始';
+                pauseBtn.style.display = 'none';
+                pauseBtn.classList.remove('resume');
+                break;
+            case 'notify':
+                restartBtn.textContent = '重新开始';
+                pauseBtn.style.display = 'none';
+                pauseBtn.classList.remove('resume');
                 break;
             case 'gameover':
                 restartBtn.textContent = '重新开始';
@@ -347,6 +388,122 @@
             ctx.textAlign = 'start';
         }
 
+        if (gameState === 'confirming') {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+
+            ctx.fillStyle = '#1e1e1e';
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 30;
+            drawRoundedRect(confirmDialogX, confirmDialogY, confirmDialogW, confirmDialogH, confirmDialogR);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('切换速度？', SIZE / 2, confirmDialogY + confirmDialogH * 0.28);
+
+            const speedNames = { 180: '慢速', 130: '正常', 90: '快速', 60: '极速' };
+            const speedName = speedNames[pendingSpeed] || '正常';
+            let speedColor;
+            if (pendingSpeed === 180) speedColor = '#81c784';
+            else if (pendingSpeed === 130) speedColor = '#4caf50';
+            else if (pendingSpeed === 90) speedColor = '#ff9800';
+            else speedColor = '#f44336';
+
+            ctx.fillStyle = speedColor;
+            ctx.font = 'bold 22px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText(speedName, SIZE / 2, confirmDialogY + confirmDialogH * 0.48);
+
+            const gradConfirm = ctx.createLinearGradient(confirmBtnX, confirmBtnY, confirmBtnX, confirmBtnY + confirmBtnH);
+            gradConfirm.addColorStop(0, '#5cbf62');
+            gradConfirm.addColorStop(1, '#388e3c');
+            ctx.fillStyle = gradConfirm;
+            ctx.shadowColor = 'rgba(76,175,80,0.5)';
+            ctx.shadowBlur = 10;
+            drawRoundedRect(confirmBtnX, confirmBtnY, confirmBtnW, confirmBtnH, confirmBtnR);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 15px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('确认', confirmBtnX + confirmBtnW / 2, confirmBtnY + confirmBtnH / 2);
+
+            const gradCancel = ctx.createLinearGradient(cancelBtnX, confirmBtnY, cancelBtnX, confirmBtnY + confirmBtnH);
+            gradCancel.addColorStop(0, '#555');
+            gradCancel.addColorStop(1, '#333');
+            ctx.fillStyle = gradCancel;
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 8;
+            drawRoundedRect(cancelBtnX, confirmBtnY, confirmBtnW, confirmBtnH, confirmBtnR);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#ccc';
+            ctx.font = 'bold 15px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('取消', cancelBtnX + confirmBtnW / 2, confirmBtnY + confirmBtnH / 2);
+
+            ctx.fillStyle = '#888';
+            ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('确认 / 空格键  |  取消 / Esc', SIZE / 2, confirmDialogY + confirmDialogH + 22);
+
+            ctx.textAlign = 'start';
+            ctx.textBaseline = 'alphabetic';
+        }
+
+        if (gameState === 'notify') {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+
+            ctx.fillStyle = '#1e1e1e';
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 30;
+            drawRoundedRect(notifyDialogX, notifyDialogY, notifyDialogW, notifyDialogH, notifyDialogR);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+
+            ctx.fillStyle = '#ff9800';
+            ctx.font = 'bold 20px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('提示', SIZE / 2, notifyDialogY + notifyDialogH * 0.25);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 17px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('游戏中无法切换速度', SIZE / 2, notifyDialogY + notifyDialogH * 0.48);
+
+            ctx.fillStyle = '#aaa';
+            ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('请游戏结束后再试', SIZE / 2, notifyDialogY + notifyDialogH * 0.65);
+
+            const gradBtn = ctx.createLinearGradient(notifyBtnX, notifyBtnY, notifyBtnX, notifyBtnY + notifyBtnH);
+            gradBtn.addColorStop(0, '#5cbf62');
+            gradBtn.addColorStop(1, '#388e3c');
+            ctx.fillStyle = gradBtn;
+            ctx.shadowColor = 'rgba(76,175,80,0.5)';
+            ctx.shadowBlur = 10;
+            drawRoundedRect(notifyBtnX, notifyBtnY, notifyBtnW, notifyBtnH, notifyBtnR);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 15px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('继续', notifyBtnX + notifyBtnW / 2, notifyBtnY + notifyBtnH / 2);
+
+            ctx.textAlign = 'start';
+            ctx.textBaseline = 'alphabetic';
+        }
+
         if (gameState === 'gameover') {
             ctx.fillStyle = 'rgba(0,0,0,0.7)';
             ctx.fillRect(0, 0, SIZE, SIZE);
@@ -425,11 +582,29 @@
         startLoop();
     }
 
+    function confirmSpeedChange() {
+        if (pendingSpeed !== null) {
+            setSpeedMode(pendingSpeed);
+        }
+        pendingSpeed = null;
+        setGameState(prevStateBeforeConfirm);
+    }
+
+    function cancelSpeedChange() {
+        pendingSpeed = null;
+        setGameState(prevStateBeforeConfirm);
+    }
+
     function togglePause() {
         if (gameState === 'playing') {
             setGameState('paused');
         } else if (gameState === 'paused') {
             setGameState('playing');
+        } else if (gameState === 'confirming') {
+            cancelSpeedChange();
+        } else if (gameState === 'notify') {
+            setGameState('playing');
+            lastMoveTime = performance.now();
         }
     }
 
@@ -440,12 +615,26 @@
             if (speed === interval) btn.classList.add('active');
             else btn.classList.remove('active');
         });
+        loadBest();
     }
 
     modeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const spd = parseInt(btn.dataset.speed, 10);
-            setSpeedMode(spd);
+            if (gameState === 'playing') {
+                setGameState('notify');
+                return;
+            }
+            if (gameState === 'paused') {
+                return;
+            }
+            if (gameState === 'idle' || gameState === 'gameover') {
+                pendingSpeed = spd;
+                prevStateBeforeConfirm = gameState;
+                setGameState('confirming');
+            } else {
+                setSpeedMode(spd);
+            }
         });
     });
 
@@ -491,10 +680,45 @@
         );
     }
 
+    function isInConfirmBtn(canvasX, canvasY) {
+        return (
+            canvasX >= confirmBtnX &&
+            canvasX <= confirmBtnX + confirmBtnW &&
+            canvasY >= confirmBtnY &&
+            canvasY <= confirmBtnY + confirmBtnH
+        );
+    }
+
+    function isInCancelBtn(canvasX, canvasY) {
+        return (
+            canvasX >= cancelBtnX &&
+            canvasX <= cancelBtnX + confirmBtnW &&
+            canvasY >= confirmBtnY &&
+            canvasY <= confirmBtnY + confirmBtnH
+        );
+    }
+
     document.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
-        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', ' '].includes(key)) {
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', ' ', 'escape', 'enter'].includes(key)) {
             e.preventDefault();
+        }
+
+        if (gameState === 'confirming') {
+            if (key === ' ' || key === 'enter') {
+                confirmSpeedChange();
+            } else if (key === 'escape') {
+                cancelSpeedChange();
+            }
+            return;
+        }
+
+        if (gameState === 'notify') {
+            if (key === ' ' || key === 'enter' || key === 'escape') {
+                setGameState('playing');
+                lastMoveTime = performance.now();
+            }
+            return;
         }
 
         if (key === ' ') {
@@ -546,6 +770,20 @@
     });
 
     canvas.addEventListener('click', (e) => {
+        if (gameState === 'notify') {
+            setGameState('playing');
+            lastMoveTime = performance.now();
+            return;
+        }
+        if (gameState === 'confirming') {
+            const coords = getCanvasCoords(e.clientX, e.clientY);
+            if (isInConfirmBtn(coords.x, coords.y)) {
+                confirmSpeedChange();
+            } else if (isInCancelBtn(coords.x, coords.y)) {
+                cancelSpeedChange();
+            }
+            return;
+        }
         if (gameState === 'idle') {
             const coords = getCanvasCoords(e.clientX, e.clientY);
             if (isInStartBtn(coords.x, coords.y)) {
@@ -594,6 +832,23 @@
 
     canvas.addEventListener('touchend', (e) => {
         if (!touchStart) {
+            if (gameState === 'notify') {
+                setGameState('playing');
+                lastMoveTime = performance.now();
+                touchStart = null;
+                return;
+            }
+            if (gameState === 'confirming') {
+                const endPt = e.changedTouches[0];
+                const coords = getCanvasCoords(endPt.clientX, endPt.clientY);
+                if (isInConfirmBtn(coords.x, coords.y)) {
+                    confirmSpeedChange();
+                } else {
+                    cancelSpeedChange();
+                }
+                touchStart = null;
+                return;
+            }
             if (gameState === 'gameover') resetToIdle();
             if (gameState === 'paused') togglePause();
             touchStart = null;
@@ -615,6 +870,13 @@
                 }
             } else if (gameState === 'paused') {
                 togglePause();
+            } else if (gameState === 'confirming') {
+                const coords = getCanvasCoords(end.clientX, end.clientY);
+                if (isInConfirmBtn(coords.x, coords.y)) {
+                    confirmSpeedChange();
+                } else if (isInCancelBtn(coords.x, coords.y)) {
+                    cancelSpeedChange();
+                }
             } else if (gameState === 'gameover') {
                 resetToIdle();
             }
@@ -626,16 +888,17 @@
     });
 
     const resizeCanvas = () => {
-        const container = canvas.parentElement;
-        if (container.clientWidth < SIZE) {
-            canvas.style.width = container.clientWidth + 'px';
-            canvas.style.height = container.clientWidth + 'px';
-        } else {
-            canvas.style.width = SIZE + 'px';
-            canvas.style.height = SIZE + 'px';
-        }
+        const maxW = canvasWrapper.clientWidth;
+        const reservedVSpace = window.innerHeight <= 520 ? 80 : 120;
+        const maxH = Math.max(window.innerHeight - reservedVSpace, 200);
+        const displaySize = Math.min(maxW, maxH, SIZE);
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
     };
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', () => {
+        setTimeout(resizeCanvas, 150);
+    });
     resizeCanvas();
 
     loadBest();
