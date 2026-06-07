@@ -171,6 +171,8 @@ SnakeGame.setupInput = function() {
                 } else {
                     SnakeGame.cancelSpeedChange();
                 }
+            } else if (SnakeGame.gameState === 'notify') {
+                SnakeGame.setGameState('playing');
             } else if (SnakeGame.gameState === 'gameover') {
                 SnakeGame.resetToIdle();
             }

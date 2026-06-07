@@ -202,10 +202,6 @@ SnakeGame.draw = function() {
         ctx.font = 'bold 15px "PingFang SC","Microsoft YaHei",sans-serif';
         ctx.fillText('取消', SnakeGame.cancelBtnX + SnakeGame.confirmBtnW / 2, SnakeGame.confirmBtnY + SnakeGame.confirmBtnH / 2);
 
-        ctx.fillStyle = '#888';
-        ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
-        ctx.fillText('确认 / 空格键  |  取消 / Esc', SIZE / 2, SnakeGame.confirmDialogY + SnakeGame.confirmDialogH + 22);
-
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
     }
