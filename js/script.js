@@ -5,11 +5,11 @@
     const bestScoreSpan = document.getElementById('bestScore');
     const modeButtons = document.querySelectorAll('.mode-btn');
     const colorSwatches = document.querySelectorAll('.swatch');
+    const customColorInput = document.getElementById('customColor');
     const restartBtn = document.getElementById('restartBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const canvasWrapper = document.getElementById('canvasWrapper');
     const dpad = document.getElementById('dpad');
-    const toggleDpadBtn = document.getElementById('toggleDpadBtn');
     const hintEl = document.getElementById('hint');
 
     const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -62,7 +62,7 @@
 
     function initNotifyDims() {
         notifyDialogW = Math.round(SIZE * 0.68);
-        notifyDialogH = Math.round(SIZE * 0.40);
+        notifyDialogH = Math.round(SIZE * 0.35);
         notifyDialogX = Math.round((SIZE - notifyDialogW) / 2);
         notifyDialogY = Math.round((SIZE - notifyDialogH) / 2);
         notifyDialogR = Math.round(SIZE * 0.03);
@@ -70,7 +70,7 @@
         notifyBtnH = Math.round(SIZE * 0.09);
         notifyBtnR = Math.round(SIZE * 0.02);
         notifyBtnX = notifyDialogX + Math.round((notifyDialogW - notifyBtnW) / 2);
-        notifyBtnY = notifyDialogY + notifyDialogH - notifyBtnH - Math.round(SIZE * 0.05);
+        notifyBtnY = notifyDialogY + notifyDialogH - notifyBtnH - Math.round(SIZE * 0.04);
     }
     initNotifyDims();
 
@@ -88,10 +88,7 @@
 
     if (!isTouchDevice) {
         dpad.style.display = 'none';
-        toggleDpadBtn.style.display = 'inline-block';
         hintEl.textContent = '方向键 / WASD 控制 | 空格键暂停/继续 | 点击色块切换背景 | 点击画布开始';
-    } else {
-        toggleDpadBtn.style.display = 'none';
     }
 
     function loadBest() {
@@ -212,7 +209,10 @@
         const prevState = gameState;
         gameState = newState;
 
-        if (newState === 'playing' && (prevState === 'paused' || prevState === 'idle' || prevState === 'notify')) {
+        if (newState === 'playing' && prevState === 'paused') {
+            lastMoveTime = performance.now();
+        }
+        if (newState === 'playing' && prevState === 'idle') {
             lastMoveTime = performance.now();
         }
         updateUI();
@@ -280,17 +280,15 @@
             ctx.moveTo(i * GRID, 0);
             ctx.lineTo(i * GRID, SIZE);
             ctx.stroke();
-        }
-        for (let i = 0; i <= ROWS; i++) {
-            ctx.beginPath();
             ctx.moveTo(0, i * GRID);
             ctx.lineTo(SIZE, i * GRID);
             ctx.stroke();
         }
 
-        if (gameState === 'playing' || gameState === 'paused' || gameState === 'gameover') {
+        if (gameState !== 'idle') {
             if (food) {
-                const fx = food.x * GRID, fy = food.y * GRID;
+                const fx = food.x * GRID,
+                    fy = food.y * GRID;
                 ctx.fillStyle = '#ff4d4d';
                 ctx.shadowColor = '#ff4d4d';
                 ctx.shadowBlur = 12;
@@ -302,7 +300,8 @@
             }
 
             snake.forEach((seg, idx) => {
-                const sx = seg.x * GRID, sy = seg.y * GRID;
+                const sx = seg.x * GRID,
+                    sy = seg.y * GRID;
                 const isHead = idx === 0;
                 ctx.fillStyle = isHead ? '#4caf50' : '#2e7d32';
                 if (isHead) {
@@ -408,7 +407,7 @@
             ctx.font = 'bold 20px "PingFang SC","Microsoft YaHei",sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('请确任切换速度', SIZE / 2, confirmDialogY + confirmDialogH * 0.28);
+            ctx.fillText('切换速度？', SIZE / 2, confirmDialogY + confirmDialogH * 0.28);
 
             const speedNames = { 180: '慢速', 130: '正常', 90: '快速', 60: '极速' };
             const speedName = speedNames[pendingSpeed] || '正常';
@@ -477,15 +476,15 @@
             ctx.font = 'bold 20px "PingFang SC","Microsoft YaHei",sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('提示', SIZE / 2, notifyDialogY + notifyDialogH * 0.22);
+            ctx.fillText('提示', SIZE / 2, notifyDialogY + notifyDialogH * 0.25);
 
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 17px "PingFang SC","Microsoft YaHei",sans-serif';
-            ctx.fillText('游戏中无法切换速度', SIZE / 2, notifyDialogY + notifyDialogH * 0.42);
+            ctx.fillText('游戏中无法切换速度', SIZE / 2, notifyDialogY + notifyDialogH * 0.48);
 
             ctx.fillStyle = '#aaa';
             ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
-            ctx.fillText('请游戏结束后再试', SIZE / 2, notifyDialogY + notifyDialogH * 0.56);
+            ctx.fillText('请游戏结束后再试', SIZE / 2, notifyDialogY + notifyDialogH * 0.65);
 
             const gradBtn = ctx.createLinearGradient(notifyBtnX, notifyBtnY, notifyBtnX, notifyBtnY + notifyBtnH);
             gradBtn.addColorStop(0, '#5cbf62');
@@ -564,13 +563,16 @@
 
     function startFromIdle() {
         stopLoop();
+        saveBest();
         init();
         setGameState('playing');
+        updateUI();
         startLoop();
     }
 
     function resetToIdle() {
         stopLoop();
+        saveBest();
         snake = [];
         food = null;
         score = 0;
@@ -584,12 +586,8 @@
         if (pendingSpeed !== null) {
             setSpeedMode(pendingSpeed);
         }
-        if (prevStateBeforeConfirm === 'gameover') {
-            resetToIdle();
-        } else {
-            setGameState(prevStateBeforeConfirm);
-        }
         pendingSpeed = null;
+        setGameState(prevStateBeforeConfirm);
     }
 
     function cancelSpeedChange() {
@@ -606,6 +604,7 @@
             cancelSpeedChange();
         } else if (gameState === 'notify') {
             setGameState('playing');
+            lastMoveTime = performance.now();
         }
     }
 
@@ -633,6 +632,8 @@
                 pendingSpeed = spd;
                 prevStateBeforeConfirm = gameState;
                 setGameState('confirming');
+            } else {
+                setSpeedMode(spd);
             }
         });
     });
@@ -644,13 +645,20 @@
             sw.classList.remove('active');
             if (sw.dataset.color === color) sw.classList.add('active');
         });
+        customColorInput.value = color;
     }
 
     colorSwatches.forEach(sw => {
-        sw.addEventListener('click', () => {
+        sw.addEventListener('click', (e) => {
+            if (sw.classList.contains('swatch-custom')) return;
             const color = sw.dataset.color;
             if (color) setBgColor(color);
         });
+    });
+
+    customColorInput.addEventListener('input', () => {
+        setBgColor(customColorInput.value);
+        colorSwatches.forEach(s => s.classList.remove('active'));
     });
 
     function getCanvasCoords(clientX, clientY) {
@@ -708,6 +716,7 @@
         if (gameState === 'notify') {
             if (key === ' ' || key === 'enter' || key === 'escape') {
                 setGameState('playing');
+                lastMoveTime = performance.now();
             }
             return;
         }
@@ -760,19 +769,10 @@
         togglePause();
     });
 
-    toggleDpadBtn.addEventListener('click', () => {
-        if (dpad.style.display === 'none') {
-            dpad.style.display = 'grid';
-            toggleDpadBtn.textContent = '隐藏方向键';
-        } else {
-            dpad.style.display = 'none';
-            toggleDpadBtn.textContent = '显示方向键';
-        }
-    });
-
     canvas.addEventListener('click', (e) => {
         if (gameState === 'notify') {
             setGameState('playing');
+            lastMoveTime = performance.now();
             return;
         }
         if (gameState === 'confirming') {
@@ -813,10 +813,10 @@
         const maxDist = Math.max(absDx, absDy);
         mouseDown = null;
 
-        if (maxDist < 5 && elapsed < 400) {
+        if (maxDist < 8 && elapsed < 400) {
             return;
         }
-        if (maxDist >= 5 && gameState === 'playing') {
+        if (maxDist >= 15 && gameState === 'playing') {
             if (absDx > absDy) setDirection(dx > 0 ? 1 : -1, 0);
             else setDirection(0, dy > 0 ? 1 : -1);
         }
@@ -834,6 +834,7 @@
         if (!touchStart) {
             if (gameState === 'notify') {
                 setGameState('playing');
+                lastMoveTime = performance.now();
                 touchStart = null;
                 return;
             }
@@ -861,7 +862,7 @@
         const elapsed = Date.now() - touchStartTime;
         const maxDist = Math.max(absDx, absDy);
 
-        if (maxDist < 10 && elapsed < 400) {
+        if (maxDist < 15 && elapsed < 400) {
             if (gameState === 'idle') {
                 const coords = getCanvasCoords(end.clientX, end.clientY);
                 if (isInStartBtn(coords.x, coords.y)) {
@@ -873,13 +874,13 @@
                 const coords = getCanvasCoords(end.clientX, end.clientY);
                 if (isInConfirmBtn(coords.x, coords.y)) {
                     confirmSpeedChange();
-                } else {
+                } else if (isInCancelBtn(coords.x, coords.y)) {
                     cancelSpeedChange();
                 }
             } else if (gameState === 'gameover') {
                 resetToIdle();
             }
-        } else if (maxDist >= 10 && gameState === 'playing') {
+        } else if (maxDist >= 20 && gameState === 'playing') {
             if (absDx > absDy) setDirection(dx > 0 ? 1 : -1, 0);
             else setDirection(0, dy > 0 ? 1 : -1);
         }
